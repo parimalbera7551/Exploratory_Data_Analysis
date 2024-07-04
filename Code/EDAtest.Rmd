@@ -1,0 +1,226 @@
+```{r}
+getwd()
+setwd("C:/Users/parim/Downloads/Compressed/archive_4")
+loan_data <- read.csv("loan_approval_dataset.csv")
+loan_data
+
+```
+###What is the distribution of loan approval status in data set?
+```{r}
+if (!requireNamespace("ggplot2", quietly = TRUE)) {
+  install.packages("ggplot2")
+}
+library(ggplot2)
+status_counts <- table(loan_data$loan_status)
+status_df <- as.data.frame(status_counts)
+colnames(status_df) <- c("Loan Status", "Count")
+ggplot(status_df, aes(x = `Loan Status`, y = Count, fill = `Loan Status`)) +
+  geom_bar(stat = "identity") +
+   geom_text(aes(label = Count), position = position_dodge(width = 0.9), vjust = -0.5)+
+  labs(title = "Loan Status Distribution",
+       x = "Loan Status",
+       y = "Count") +
+  scale_fill_manual(values = c("blue", "red")) +
+  theme_minimal() +
+  ylim(0,3000)
+```
+### How does education level(Graduate,Not Graduate) affects loan approval status?
+
+```{r}
+library(ggplot2)
+library(dplyr)
+count_table <- table(loan_data$education, loan_data$loan_status)
+count_df <- as.data.frame.matrix(count_table)
+colnames(count_df) <- c("Approved", "Rejected")
+count_df$Education <- rownames(count_df)
+count_df_long <- count_df %>%
+  tidyr::gather(Status, Count, -Education)
+ggplot(count_df_long, aes(x = Education, y = Count, fill = Status)) +
+  geom_bar(stat = "identity", position = "dodge") +
+    geom_text(aes(label = Count), position = position_dodge(width = 0.9), vjust = -0.5) +
+  labs(title = "Loan Approval Status by Education",
+       x = "Education Level",
+       y = "Count") +
+  scale_fill_manual(values = c("Approved" = "blue", "Rejected" = "red")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+
+ylim(0,2000)
+
+
+```
+## Among graduate applicants ,there are both approved and rejected loans.This indicates that graduate  does not guarantee loan approval.Slly among non graduate applicants there are both approved and rejected.So not graduate does not guarantee loan approval.Based on data it appears that education level alone may not be a decisive factor in loan approval.
+
+
+
+### How does self-employedlevel(yes or no) affect the loan approval status?
+
+```{r}
+library(ggplot2)
+library(dplyr)
+count_table <- table(loan_data$self_employed, loan_data$loan_status) 
+count_df <- as.data.frame.matrix(count_table)
+colnames(count_df) <- c("Approved", "Rejected")
+count_df$`Self Employed` <- rownames(count_df)
+count_df_long <- count_df %>%
+  tidyr::gather(Status, Count, -`Self Employed`)
+ggplot(count_df_long, aes(x = factor(`Self Employed`), y = Count, fill = Status)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = Count), position = position_dodge(width = 0.9), vjust = -0.5) + 
+  labs(title = "Loan Approval Status by Self Employment",
+       x = "Self Employed",
+       y = "Count") +
+  scale_fill_manual(values = c("Approved" = "blue", "Rejected" = "red")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+
+  ylim(0,2000)
+
+```
+######CONCLUSION#####
+#Among self-employed applicants there is mix of both approved and rejected loans.This indicates  being self-employed not guarantee loan approval .
+#slly among non-self-employed applicants,there are both approved and rejected.This indicates  not being self-employed  does not necessarily lead to loan rejection.
+#Based on the data self-employment status alone may not be decisive factor in loan approval
+
+
+```{r}
+total_approved <- sum(loan_data$loan_status == " Approved")
+total_rejected <- sum(loan_data$loan_status == " Rejected")
+cat("Total Approved:", total_approved, "\n")
+cat("Total Rejected:", total_rejected, "\n")
+total_approved <- 2656  
+total_rejected <- 1613  
+percentage_approved <- (total_approved / (total_approved + total_rejected)) * 100
+percentage_rejected <- (total_rejected / (total_approved + total_rejected)) * 100
+status_counts <- data.frame(
+  Status = c("Approved", "Rejected"),
+  Percentage = c(percentage_approved, percentage_rejected)
+)
+library(ggplot2)
+ggplot(status_counts, aes(x = "", y = Percentage, fill = Status)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y") +
+  labs(title = "Loan Approval Status",
+       fill = "Loan Status",
+       x = NULL,
+       y = NULL) +
+  scale_fill_manual(values = c("Approved" = "lightblue", "Rejected" = "red")) +
+  theme_void() +
+  geom_text(aes(label = paste0(round(Percentage), "%")), position = position_stack(vjust = 0.5), size = 4)
+
+```
+#How does cibil score affect the loan status?
+
+```{r}
+library(ggplot2)
+filtered_data <- loan_data[is.finite(loan_data$cibil_score), ]
+breaks <- c(300, 400, 500,600,700,800,900)
+filtered_data$cibil_range <- cut(filtered_data$cibil_score, 
+                                 breaks = breaks, 
+                                 include.lowest = TRUE)
+
+count_data <- aggregate(loan_id ~ loan_status + cibil_range, 
+                        data = filtered_data, 
+                        FUN = length)
+
+ggplot(count_data, aes(x = factor(cibil_range), y = loan_id, fill = loan_status)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = loan_id), position = position_dodge(width = 0.9), vjust = -0.5, size = 3) +
+  labs(title = "Number of People by Loan Status and CIBIL Score Range",
+       x = "CIBIL Score Range",
+       y = "Number of People",
+       fill = "Loan Status") +
+  scale_fill_manual(values = c( "blue", "red")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+
+```
+  
+  
+###How does loan term affect the loan status?k
+```{r}
+library(ggplot2)
+library(dplyr)
+filtered_data <- loan_data[is.finite(loan_data$loan_term), ]
+
+breaks <- seq(0, 22, by = 2)
+filtered_data$loan_term_range <- cut(filtered_data$loan_term, 
+                                     breaks = breaks, 
+                                     include.lowest = TRUE, 
+                                    include.upper = TRUE)
+count_data <- aggregate(loan_id ~ loan_status + loan_term_range, 
+                        data = filtered_data, 
+                        FUN = length)
+ggplot(count_data, aes(x = as.factor(loan_term_range), y = loan_id, fill = loan_status)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = loan_id), position = position_dodge(width = 0.9), vjust = -0.5, size = 3) +
+  labs(title = "Frequency Count of Loan Status by Loan Term Range",
+       x = "Loan Term Range",
+       y = "Frequency Count",
+       fill = "Loan Status") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+
+```
+
+```{r}
+numeric_columns <- loan_data[sapply(loan_data, is.numeric) & names(loan_data) != "loan_id"]
+correlation_matrix <- cor(numeric_columns)
+correlation_matrix_rounded <- round(correlation_matrix, 2)
+print(correlation_matrix_rounded)
+
+
+```
+
+
+```{r}
+boxplot(cibil_score ~ loan_status, data = loan_data,
+        xlab = "Loan Status",
+        ylab = "Cibil Score",
+        main = "Box Plot of Cibil Score by Loan Status",
+        col = c("blue", "green"),  
+        border = "black")       
+
+
+
+
+```
+#the upper quartile of cibil score of those person whose loan is approved is higher than the upper quartile of cibil score of those person whose loan is rejected.So we can conclude that there are  significant no of person whose loan is approved 
+###the median of cibil score of those person whose loan is approved is higher than the median of cibil score of those person whose loan is rejected.Here we can conclude that the person whose loan is approved and obtained cibil score  greater than the median of the cibil score of the persons whose loan is approved has higher chance of getting their loan approved.And  the person whose loan is rejected and obtained cibil score less than the median of the cibil score whose loan is rejected has lower chance of getting their loan is rejected.#####
+```{r}
+library(ggplot2)
+ggplot(loan_data, aes(x = loan_status, y = loan_term, fill = loan_status)) +
+  geom_boxplot() +
+  labs(title = "Box Plot of Loan Term by Loan Status",
+       x = "Loan Status",
+       y = "Loan Term") +
+  scale_fill_manual(values = c("blue", "red")) +
+  theme_minimal()
+
+```
+
+
+
+
+
+```{r}
+library(corrplot)
+numeric_columns <- loan_data[sapply(loan_data, is.numeric)]
+corrplot(correlation_matrix_rounded,method="color",type="full",
+         tl.cex=0.8,
+         tl.col="black",
+         tl.srt=45,
+         tl.pos="lt",
+         addCoef.col = "black",
+         col=colorRampPalette(c("lightblue","white","red"))(100),
+         number.cex = 0.6,
+         mar=c(4,0,0.1,20))
+title("Correlation Matrix Plot",outer=FALSE)
+```
+
+
+
